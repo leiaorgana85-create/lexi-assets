@@ -4,7 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b0c" />
-  <title>LEXI MUSIC — Safari</title>
+  <link rel="apple-touch-icon" href="/lexi-assets/music-logo.png?v=2" />
+  <title>LEXI MUSIC</title>
   <style>
     html,body{margin:0;background:#0b0b0c;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     .boot{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center}
@@ -21,8 +22,8 @@
         if (!response.ok) throw new Error(`Lexi Music HTML returned ${response.status}`);
         let html = await response.text();
 
-        // Keep this page outside the /music-player/ service-worker scope and prevent
-        // the normal app shell from registering/updating the standalone PWA worker.
+        // Safari shortcut mode only: no manifest, standalone/PWA metadata, or
+        // service-worker registration. The Home Screen icon should open Safari.
         html = html.replace(/<link\s+rel=["']manifest["'][^>]*>/gi, '');
         html = html.replace(/<meta\s+name=["']apple-mobile-web-app-capable["'][^>]*>/gi, '');
         html = html.replace(/<meta\s+name=["']apple-mobile-web-app-status-bar-style["'][^>]*>/gi, '');
@@ -30,15 +31,13 @@
         html = html.replace(/<script>\s*window\.__musicBootStart[\s\S]*?navigator\.serviceWorker\.register\([\s\S]*?<\/script>/i,
           '<script>window.__musicBootStart = performance.now();<\/script>');
 
-        // Safari background playback must not pass through playback-prefetch.js.
-        // That module wraps audio.play(), calls audio.load() on every source change,
-        // and waits for canplay; WebKit can suspend that handoff while locked.
+        // Preserve the Safari v3 reliability fix: do not load playback-prefetch.js,
+        // which forces audio.load()/canplay gating on each source change.
         html = html.replace(/\s*<script src=["']playback-prefetch\.js\?v=3["']><\/script>\s*/i, '\n');
 
-        // Resolve all of Lexi Music's existing relative assets against the main app.
-        html = html.replace('<head>', '<head><base href="/music-player/">');
+        // Use the canonical Lexi Music icon/title even though this is a Safari shortcut.
+        html = html.replace('<head>', '<head><base href="/music-player/"><link rel="apple-touch-icon" href="/lexi-assets/music-logo.png?v=2"><title>LEXI MUSIC</title>');
 
-        // Mark this runtime so future Safari-specific code can distinguish it safely.
         html = html.replace('<body>', '<body data-lexi-safari="1" data-safari-player-version="3">');
 
         document.open();
