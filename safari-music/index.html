@@ -17,7 +17,7 @@
   <script>
     (async () => {
       try {
-        const response = await fetch('/music-player/index.html?mode=safari-v2', { cache: 'no-store' });
+        const response = await fetch('/music-player/index.html?mode=safari-v3', { cache: 'no-store' });
         if (!response.ok) throw new Error(`Lexi Music HTML returned ${response.status}`);
         let html = await response.text();
 
@@ -30,11 +30,16 @@
         html = html.replace(/<script>\s*window\.__musicBootStart[\s\S]*?navigator\.serviceWorker\.register\([\s\S]*?<\/script>/i,
           '<script>window.__musicBootStart = performance.now();<\/script>');
 
+        // Safari background playback must not pass through playback-prefetch.js.
+        // That module wraps audio.play(), calls audio.load() on every source change,
+        // and waits for canplay; WebKit can suspend that handoff while locked.
+        html = html.replace(/\s*<script src=["']playback-prefetch\.js\?v=3["']><\/script>\s*/i, '\n');
+
         // Resolve all of Lexi Music's existing relative assets against the main app.
         html = html.replace('<head>', '<head><base href="/music-player/">');
 
         // Mark this runtime so future Safari-specific code can distinguish it safely.
-        html = html.replace('<body>', '<body data-lexi-safari="1">');
+        html = html.replace('<body>', '<body data-lexi-safari="1" data-safari-player-version="3">');
 
         document.open();
         document.write(html);
