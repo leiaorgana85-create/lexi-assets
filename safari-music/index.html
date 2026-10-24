@@ -18,6 +18,10 @@
   <script>
     (async () => {
       try {
+        if ('serviceWorker' in navigator) {
+          await navigator.serviceWorker.register('./sw.js', {scope:'./'});
+          await navigator.serviceWorker.ready;
+        }
         const response = await fetch('/music-player/index.html?mode=safari-v3', { cache: 'no-store' });
         if (!response.ok) throw new Error(`Lexi Music HTML returned ${response.status}`);
         let html = await response.text();
